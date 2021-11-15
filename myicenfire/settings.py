@@ -24,9 +24,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'y7l4l8n5b$plp0zt^9jcg(wj3=^#59p(x6ij8!1#_#4z*o^ok3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False # True
+DEBUG = False  # True
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', "myicenfire.herokuapp.com/"]
 
 
 # Application definition
