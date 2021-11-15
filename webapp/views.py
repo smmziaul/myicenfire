@@ -4,7 +4,7 @@ from django import shortcuts
 
 from django.shortcuts import render
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -21,7 +21,7 @@ from collections import OrderedDict
 # from datetime import datetime
 import json
 from django.db.models import Q
-
+import pathlib
 # Create your views here.
 
 
@@ -119,7 +119,7 @@ class BookList(APIView):
         encoding = 'utf-8'
         rb = rb.decode(encoding)
 
-        if rb is None:
+        if rb == "":
             # return all books from the db
             my_books = Book.objects.all()
             serializer = BooksSerializer(my_books, many=True)
@@ -171,14 +171,28 @@ class BookList(APIView):
             return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # def put(self, request):
+    #     serializer = BooksSerializer(book, data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-#  elif request.method == 'PUT':
-#         serializer = SnippetSerializer(snippet, data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, *args, **kwargs):
+        book_id_to_delete = int(pathlib.PurePath(request.path).name)
 
-#     elif request.method == 'DELETE':
-#         snippet.delete()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
+        book = Book.objects.get(pk=book_id_to_delete)
+
+        deleted_book_name = book.name
+        post_delete_msg = "The book, " + deleted_book_name + " was deleted successfully"
+        book.delete()
+
+        res = {
+            "status_code": 200,
+            "status": "success",
+            "message": post_delete_msg,
+            "data": []
+        }
+
+        res = Response(res, status=status.HTTP_204_NO_CONTENT)
+        return res
