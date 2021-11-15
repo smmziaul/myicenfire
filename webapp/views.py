@@ -11,17 +11,16 @@ from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework import status
 
-# from myicenfire.webapp.external_apis.icenfire_api import IceNFireAPI
 
 from .models import Book
 from .serializers import BooksSerializer
-# from .external_apis.icenfire_api import icenfire_api
 import requests
 from collections import OrderedDict
-# from datetime import datetime
 import json
 from django.db.models import Q
 import pathlib
+from django.core.exceptions import ObjectDoesNotExist
+
 # Create your views here.
 
 
@@ -113,24 +112,59 @@ class BookList(APIView):
         return qs
 
     def get(self, request):
-
         rb = request.body
-
         encoding = 'utf-8'
         rb = rb.decode(encoding)
 
         if rb == "":
-            # return all books from the db
-            my_books = Book.objects.all()
-            serializer = BooksSerializer(my_books, many=True)
+            # req body is empty; so, no filtering; 
+            # return either list view or detail view
+            # that is, fetch all objects or fetch details about one object
+            last_path = str(pathlib.PurePath(request.path).name)
 
-            my_dict = {
-                "status_code": 200,
-                "status": "success",
-                "data": serializer.data,
-            }
+            if last_path == "books":
+                # list view
+                # return all books from the db
+                my_books = Book.objects.all()
+                serializer = BooksSerializer(my_books, many=True)
+
+                my_dict = {
+                    "status_code": 200,
+                    "status": "success",
+                    "data": serializer.data,
+                }
+                return Response(my_dict)
+            else:
+                # details view
+                book_id_to_fetch = int(pathlib.PurePath(request.path).name)
+                try:
+                    book = Book.objects.get(pk=book_id_to_fetch)
+                    fetched_book_name = book.name
+                    post_fetch_msg = "The book, " + fetched_book_name + " was fetched successfully"
+
+                    res = {
+                        "status_code": 200,
+                        "status": "success",
+                        "message": post_fetch_msg,
+                        "data": BooksSerializer(book).data
+                    }
+
+                    res = Response(res)
+                    return res
+                except ObjectDoesNotExist:
+                    res = {
+                        "status_code": 200,
+                        "status": "failed",
+                        "message": "Object does not exist.",
+                        "data": []
+                    }
+
+                    res = Response(res, status=status.HTTP_204_NO_CONTENT)
+                    return res
         else:
-            # else return books based on filter options by user
+            # req body is not empty 
+            # so, use filter options 
+            # and return books based on filter options by user
             try:
                 rb = json.loads(rb)
 
@@ -143,14 +177,13 @@ class BookList(APIView):
                     "data": serializer.data,
                 }
             except:
+                # wrong params user might hav sent
                 my_dict = {
                     "status_code": 400,
                     "status": "failure",
                     "message": "bad request. Check your req body!"
                 }
-
         res = Response(my_dict)
-
         return res
 
     def post(self, request):
@@ -171,28 +204,65 @@ class BookList(APIView):
             return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # def put(self, request):
-    #     serializer = BooksSerializer(book, data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def patch(self, request):
+
+        book_id_to_update = int(pathlib.PurePath(request.path).name)
+        try:
+            book = Book.objects.get(pk=book_id_to_update)
+            updated_book_name = book.name
+
+            serializer = BooksSerializer(
+                book, data=request.data,  partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                post_update_msg = "The book, " + updated_book_name + " was updated successfully"
+                my_dict = {
+                    "status_code": 200,
+                    "status": "success",
+                    "message": post_update_msg,
+                    "data": serializer.data,
+                }
+                return Response(my_dict)
+            else:
+                my_dict = {
+                    "status_code": 400,
+                    "status": "failed",
+                    "message": "Check the parameters you've sent.",
+                    "data": serializer.errors,
+                }
+                return Response(my_dict)
+        except ObjectDoesNotExist:
+            my_dict = {
+                "status_code": 200,
+                "status": "failed",
+                "message": "Object does not exist.",
+            }
+            return Response(my_dict)
 
     def delete(self, request, *args, **kwargs):
         book_id_to_delete = int(pathlib.PurePath(request.path).name)
+        try:
+            book = Book.objects.get(pk=book_id_to_delete)
+            deleted_book_name = book.name
+            post_delete_msg = "The book, " + deleted_book_name + " was deleted successfully"
+            book.delete()
 
-        book = Book.objects.get(pk=book_id_to_delete)
+            res = {
+                "status_code": 200,
+                "status": "success",
+                "message": post_delete_msg,
+                "data": []
+            }
 
-        deleted_book_name = book.name
-        post_delete_msg = "The book, " + deleted_book_name + " was deleted successfully"
-        book.delete()
+            res = Response(res, status=status.HTTP_204_NO_CONTENT)
+            return res
+        except ObjectDoesNotExist:
+            res = {
+                "status_code": 200,
+                "status": "failed",
+                "message": "Object does not exist.",
+                "data": []
+            }
 
-        res = {
-            "status_code": 200,
-            "status": "success",
-            "message": post_delete_msg,
-            "data": []
-        }
-
-        res = Response(res, status=status.HTTP_204_NO_CONTENT)
-        return res
+            res = Response(res, status=status.HTTP_204_NO_CONTENT)
+            return res
