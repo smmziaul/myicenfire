@@ -1,1 +1,1 @@
-web: gunicorn icenfire.wsgi
+web: gunicorn myicenfire.wgsi --log-file -
