@@ -13,10 +13,10 @@ urlpatterns = [
     url(r'^api/external-books', views.ExternalAPI.as_view()),
 
     # added while deployment
-    url(r'^media/(?P<path>.*)$', serve,
-        {'document_root':       settings.MEDIA_ROOT}),
-    url(r'^static/(?P<path>.*)$', serve,
-        {'document_root': settings.STATIC_ROOT}),
+    # url(r'^media/(?P<path>.*)$', serve,
+    #     {'document_root':       settings.MEDIA_ROOT}),
+    # url(r'^static/(?P<path>.*)$', serve,
+    #     {'document_root': settings.STATIC_ROOT}),
 ]
 
 # urlpatterns = format_suffix_patterns(urlpatterns)
