@@ -230,7 +230,7 @@ psycopg2==2.9.2
 # python-jsonrpc-server @ file:///tmp/build/80754af9/python-jsonrpc-server_1600278539111/work
 # python-language-server @ file:///tmp/build/80754af9/python-language-server_1600454544709/work
 # pytz @ file:///tmp/build/80754af9/pytz_1612215392582/work
-pytx==2021.1
+pytz==2021.1
 # PyWavelets @ file:///C:/ci/pywavelets_1601658407916/work
 # pywin32==227
 # pywin32-ctypes==0.2.0
