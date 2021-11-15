@@ -19,9 +19,11 @@ from .serializers import BooksSerializer
 import requests
 from collections import OrderedDict
 # from datetime import datetime
-
+import json
+from django.db.models import Q
 
 # Create your views here.
+
 
 class ExternalAPI(APIView):
     def get(self, request):
@@ -84,36 +86,90 @@ class ExternalAPI(APIView):
 
 
 class BookList(APIView):
+
+    def filter_books(self, filter_d):
+
+        # iterate thru the filter options entered by user and cascade the query set results repeatedly for each k, v condition in {}
+        qs = Book.objects.all()
+        query = None
+        for key in filter_d:
+            val = filter_d[key]
+            if query is None:
+                query = Q(**{key: val})
+            else:
+                query = query | Q(**{key: val})
+        if query:
+            qs = qs.filter(query)
+
+        # for year passed as integer in req.body
+        if 'release_date' in filter_d:
+            year = filter_d['release_date']
+            qs1 = Book.objects.filter(release_date__contains=year)
+            # qs1 = Book.objects.filter.contains(release_date__icontains=year)
+            # qs1 = Book.release_date.objects.filter(field__icontains=year)
+
+            qs = qs | qs1
+
+        return qs
+
     def get(self, request):
 
-        my_books = Book.objects.all()
-        serializer = BooksSerializer(my_books, many=True)
+        rb = request.body
 
-        my_dict = {
-            "status_code": 200,
-            "status": "success",
-            "data": serializer.data,
-        }
+        encoding = 'utf-8'
+        rb = rb.decode(encoding)
+
+        if rb is None:
+            # return all books from the db
+            my_books = Book.objects.all()
+            serializer = BooksSerializer(my_books, many=True)
+
+            my_dict = {
+                "status_code": 200,
+                "status": "success",
+                "data": serializer.data,
+            }
+        else:
+            # else return books based on filter options by user
+            try:
+                rb = json.loads(rb)
+
+                my_books = self.filter_books(rb)
+                serializer = BooksSerializer(my_books, many=True)
+
+                my_dict = {
+                    "status_code": 200,
+                    "status": "success",
+                    "data": serializer.data,
+                }
+            except:
+                my_dict = {
+                    "status_code": 400,
+                    "status": "failure",
+                    "message": "bad request. Check your req body!"
+                }
+
         res = Response(my_dict)
 
         return res
 
     def post(self, request):
-        print('post request')
-
         serializer = BooksSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            my_dict = {
+                "status_code": 201,
+                "status": "success",
+                "data": [
+                    {
+                        "book": serializer.data,
+                    }
+                ],
+            }
 
-        # my_dict = {
-        #     "status_code": 200,
-        #     "status": "success",
-        #     "data": serializer.data,
-        # }
-        # res = Response(my_dict)
-        # return res
+            res = Response(my_dict, status=status.HTTP_201_CREATED)
+            return res
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 #  elif request.method == 'PUT':

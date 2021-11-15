@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.db.models import ManyToManyField
 
 # Create your models here.
 
@@ -10,7 +9,7 @@ from django.db.models import ManyToManyField
 class Book(models.Model):
     name = models.CharField(max_length=200)
     isbn = models.CharField(max_length=200)
-    authors = models.ManyToManyField('Author', blank=True)
+    authors = models.JSONField()
 
     number_of_pages = models.IntegerField()
     publisher = models.CharField(max_length=200)
@@ -19,7 +18,3 @@ class Book(models.Model):
 
     def __str__(self):
         return self.fname
-
-
-class Author(models.Model):
-    name = models.CharField(max_length=200)
